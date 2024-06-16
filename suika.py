@@ -1,6 +1,7 @@
 # %%
 import time
 import numpy as np
+import pandas as pd
 from numba import njit
 import matplotlib.pyplot as plt 
 import matplotlib.patches as mpatches
@@ -367,8 +368,24 @@ class World:
 
 
     def run(self):
-        self.reset_game()
-    
+        self.score = 0
+        self.scores_df = pd.DataFrame(columns=["score"])  # DataFrame to store scores
+        self.is_down = False
+        self.add_block = 0
+        self.is_not_closed = True
+        self.cursor_x = x_box_max * .5
+        self.n_ball = 0
+        self.n_ball_prev = 0
+        self.ball_[:] = 0
+        self.next_ball_type_ = np.random.randint(5, size=2)
+        # self.next_ball_type_ = np.array([9, 9, 9, 9, 9, 6, 6, 3, 2, 1], dtype=int)
+        
+        self.fig, self.ax = plt.subplots(dpi=150)
+        self.ax.set_xlim((x_box_min-.1, x_box_max+.1))
+        self.ax.set_ylim((y_box_min-.1, y_box_max+.1))
+        self.ax.set_aspect(1)
+        set_bbox_inches_tight(self.fig)    
+
         self.cursor = mpatches.Circle((0, 0), 0, ec="none", animated=True)
         self.ax.add_artist(self.cursor)
         self.cursor.set_radius(radius_[self.next_ball_type_[0]])
@@ -397,38 +414,34 @@ class World:
         self.fig.canvas.draw()
 
         self.bg = self.fig.canvas.copy_from_bbox(self.fig.bbox)
-
-
         t_0 = time.time()
         while self.is_not_closed == True:
             self.n_ball_prev = self.n_ball
             self.system_ball_add()
             self.system_ball_physics()
             self.system_display()
-        
             for i_ball in range(self.n_ball_prev - 1):
-                if self.ball_[i_ball]['y'] - self.ball_[i_ball]['r'] >= y_box_max:
-                    self.is_not_closed = False
+                if self.ball_[i_ball]['y']  >= y_box_max:
+                    self.ax.clear()
+                    self.ax.text(0.5, 0.5, f'Score: {self.score}', horizontalalignment='center', verticalalignment='center')
+                    self.fig.canvas.draw()  # Update the figure                
+                    plt.waitforbuttonpress()
+                    self.new_score_df = pd.DataFrame({"score": [self.score]})#update score
+                    self.scores_df = pd.concat([self.scores_df, self.new_score_df], ignore_index=True)
+                    self.scores_df.to_csv('scores.csv', index=False)
+                    self.load_scores()
+                    self.score = 0
+                    self.is_down = False
+                    self.add_block = 0
+                    self.n_ball = 0
+                    self.n_ball_prev = 0
+                    self.ball_[:] = 0
                     break
-        
             self.fig.canvas.flush_events() # Refresh Input Buffer
-
             t = time.time() # System Time
             if (t-t_0) < dt:
                 time.sleep(dt - (t-t_0))
-                print(f"sleeped : {dt - (t-t_0):.5f} sec")
             t_0 = t
-
-    # 清空畫面並顯示結算畫面
-
-        plt.clf()
-        plt.text(0.5, 0.5, f'Score: {self.score}', horizontalalignment='center', verticalalignment='center')
-        plt.show(block = False)
-        plt.waitforbuttonpress()
-        plt.close()
- 
-    # 繼續執行遊戲的初始化設置...
-
 
     def system_ball_add(self):
         self.add_block = max(0, self.add_block-1)
@@ -467,8 +480,12 @@ class World:
         self.score += diff_score
         
     def draw_artist_animated(self):
+        if self.bg is not None:
+            self.fig.canvas.restore_region(self.bg)
         for artist in [self.cursor] +self.artist_ball_ +self.artist_line_ball_:
             self.fig.draw_artist(artist)
+
+
 
     def system_display(self):
         self.fig.canvas.restore_region(self.bg)
@@ -503,6 +520,8 @@ class World:
 
         self.draw_artist_animated()
         self.fig.canvas.blit(self.fig.bbox)
+        self.fig.canvas.flush_events() # Refresh Input Buffer
+
 
 
     # Event Handler
@@ -534,28 +553,16 @@ class World:
                 raise RuntimeError
         self.bg = self.fig.canvas.copy_from_bbox(self.fig.bbox)
         self.draw_artist_animated()
+    def load_scores(self):
+        # Load scores from a CSV file
+        try:
+            self.scores_df = pd.read_csv('scores.csv')
+        except FileNotFoundError:
+            self.scores_df = pd.DataFrame(columns=["score"])
     
-    def reset_game(self):
-        self.score = 0
-        self.is_down = False
-        self.add_block = 0
-        self.is_not_closed = True
-        self.cursor_x = x_box_max * .5
-        self.n_ball = 0
-        self.n_ball_prev = 0
-        self.ball_[:] = 0
-        self.next_ball_type_ = np.random.randint(5, size=2)
 
-        self.fig, self.ax = plt.subplots(dpi=150)
-        self.ax.set_xlim((x_box_min-.1, x_box_max+.1))
-        self.ax.set_ylim((y_box_min-.1, y_box_max+.1))
-        self.ax.set_aspect(1)
-        set_bbox_inches_tight(self.fig)
-
-
-while (True):# %%
-    try:
-        world = World()
-        world.run()
-    except KeyboardInterrupt:
-        break
+try:
+    world = World()
+    world.run()
+except KeyboardInterrupt:
+    print('Interrupted')
