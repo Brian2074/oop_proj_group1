@@ -1,4 +1,3 @@
-# %%
 import time
 import numpy as np
 import pandas as pd
@@ -369,10 +368,10 @@ class World:
 
     def run(self):
         self.score = 0
-        try :
+        try :# Load scores from a CSV file
             self.scores_df = pd.read_csv('scores.csv')
         except FileNotFoundError:
-            self.scores_df = pd.DataFrame(columns=["score"])
+            self.scores_df = pd.DataFrame(columns=['score'])    
         self.is_down = False
         self.add_block = 0
         self.is_not_closed = True
@@ -424,21 +423,25 @@ class World:
             self.system_ball_physics()
             self.system_display()
             for i_ball in range(self.n_ball_prev - 1):
-                if self.ball_[i_ball]['y']  >= y_box_max:
+                if self.ball_[i_ball]['y'] >= y_box_max:
                     self.ax.clear()
-                    self.ax.text(0.5, 0.5, f'Score: {self.score}', horizontalalignment='center', verticalalignment='center')
-                    self.fig.canvas.draw()  # Update the figure                
-                    plt.waitforbuttonpress()
-                    self.new_score_df = pd.DataFrame({"score": [self.score]})#update score
+                    self.fig.clear()
+                    self.new_score_df = pd.DataFrame({"score" : [self.score]})#update score
                     self.scores_df = pd.concat([self.scores_df, self.new_score_df], ignore_index=True)
                     self.scores_df.to_csv('scores.csv', index=False)
-                    self.load_scores()
-                    self.score = 0
-                    self.is_down = False
-                    self.add_block = 0
-                    self.n_ball = 0
-                    self.n_ball_prev = 0
-                    self.ball_[:] = 0
+                    plt.hist(self.scores_df, bins = "auto" , edgecolor='black')
+                    self.x_min, self.x_max = plt.gca().get_xlim()
+                    self.y_min, self.y_max = plt.gca().get_ylim()
+                    plt.xlabel('score')
+                    plt.ylabel('people')
+
+                    plt.text(self.x_min, self.y_max, f"Score: {self.score}", fontsize=8, ha='left', va='bottom')
+                    plt.text((self.x_max + self.x_min)/2, self.y_max, f"Mean: {round(self.scores_df['score'].mean(), 1)}", fontsize=8, ha='center', va='bottom')
+                    plt.text(self.x_max, self.y_max, f"Std.dev: {round(self.scores_df['score'].std(), 1)}", fontsize=8, ha='right', va='bottom')
+                    plt.tight_layout()
+                    plt.show()
+                    plt.waitforbuttonpress()
+                    plt.close()
                     break
             self.fig.canvas.flush_events() # Refresh Input Buffer
             t = time.time() # System Time
@@ -556,12 +559,7 @@ class World:
                 raise RuntimeError
         self.bg = self.fig.canvas.copy_from_bbox(self.fig.bbox)
         self.draw_artist_animated()
-    def load_scores(self):
-        # Load scores from a CSV file
-        try:
-            self.scores_df = pd.read_csv('scores.csv')
-        except FileNotFoundError:
-            self.scores_df = pd.DataFrame(columns=["score"])
+
     
 
 try:
