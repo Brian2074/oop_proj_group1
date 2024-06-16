@@ -369,7 +369,10 @@ class World:
 
     def run(self):
         self.score = 0
-        self.scores_df = pd.DataFrame(columns=["score"])  # DataFrame to store scores
+        try :
+            self.scores_df = pd.read_csv('scores.csv')
+        except FileNotFoundError:
+            self.scores_df = pd.DataFrame(columns=["score"])
         self.is_down = False
         self.add_block = 0
         self.is_not_closed = True
