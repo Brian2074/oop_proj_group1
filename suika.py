@@ -40,7 +40,7 @@ def set_bbox_inches_tight(fig, ratio_margin=0.01):#調整邊框
 
 
 # %%
-radius_ = .5 * np.array((1, 1.4, 2, 2.82, 3.5 , 4, 5, 6, 6.5, 7, 8))
+radius_ = .5 * np.array((1, 1.4, 2, 2.82, 3.5 , 4, 5.5, 6.5, 7, 7.8, 8))
 color_ = np.array((
     (228, 8, 8),
     (251, 109, 75),
@@ -379,7 +379,10 @@ class World:
         self.n_ball = 0
         self.n_ball_prev = 0
         self.ball_[:] = 0
-        self.next_ball_type_ = np.random.randint(5, size=2)
+        if np.max(self.ball_['type']) > 0:
+            self.next_ball_type_ = np.random.randint(np.max(self.ball_['type']), size=2) # random initial type   
+        else:
+            self.next_ball_type_ = np.random.randint(1, size=2)
         # self.next_ball_type_ = np.array([9, 9, 9, 9, 9, 6, 6, 3, 2, 1], dtype=int)
         
         self.fig, self.ax = plt.subplots(dpi=150)
@@ -473,8 +476,10 @@ class World:
                     self.cursor.set_radius(radius_[self.next_ball_type_[1]])
                     self.cursor.set_color(color_[self.next_ball_type_[1]])
                     self.next_ball_type_[:-1] = self.next_ball_type_[1:]
-                    self.next_ball_type_[-1] = np.random.randint(5)
-
+                    if np.max(self.ball_['type']) > 0:
+                        self.next_ball_type_[-1] = np.random.randint(np.max(self.ball_['type'])) # random initial type   
+                    else:
+                        self.next_ball_type_[-1] = np.random.randint(1)
     def system_ball_physics(self):
         self.n_ball, diff_score = system_ball_physics_numba(
             self.ball_,
